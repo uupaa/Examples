@@ -1,0 +1,84 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="minimal-ui, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title></title>
+<style>
+touchTarget {
+  top: 100px;
+  left: 100px;
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  background-color: navy;
+  outline: 1px solid blue;
+}
+</style>
+<script>
+window.onload = function() {
+  var dpr = window.devicePixelRatio || 1;
+
+  document.body.innerHTML += "<p>" + navigator.userAgent + "</p>";
+  document.body.innerHTML += "<p>devicePixelRatio: " + dpr + "</p>";
+};
+
+</script>
+</head><body style="background-color: lime">
+<div id="touchInfo">touch me</div>
+
+
+
+</div>
+<script>
+window.addEventListener("pageshow", function() {
+  var touchInfo = document.querySelector("#touchInfo");
+  var body = document.querySelector("body");
+
+  body.addEventListener("touchstart",  handleEvent);
+//  touchInfo.addEventListener("touchmove",   handleEvent);
+//  document.addEventListener("touchend",    handleEvent);
+//  document.addEventListener("touchcancel", handleEvent);
+/*
+  event.touches        は、Touch オブジェクトの配列
+  event.targetTouches  は、タッチターゲット上で発生した Touch オブジェクトの配列
+  event.changedTouches は、最後の Touch イベントから変更があった Touch オブジェクトの配列
+ */
+
+  function handleEvent(event) {
+    switch (event.type) {
+    case "touchstart":
+      touchInfo.innerHTML = "touches: " + event.touches.length;
+      break;
+/*
+    case "touchmove":
+      event.preventDefault(); // touch move で preventDefault することにより、
+                              // スクロールなどのデフォルトの動作を抑止できる
+      console.log("touchmove");
+      break;
+    case "touchend":
+      console.log("touchend");
+      document.body.innerHTML = "";
+      break;
+    case "touchcancel":
+      console.log("touchcancel");
+      break;
+ */
+    }
+  }
+});
+
+</script>
+
+
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
+</body></html>
+
+
+
+
