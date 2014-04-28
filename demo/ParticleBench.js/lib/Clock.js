@@ -1,6 +1,6 @@
 // @name: Clock.js
 // @require: Valid.js
-// @cutoff: @assert @node
+// @cutoff: @assert @node @xbrowser
 
 (function(global) {
 "use strict";
@@ -16,94 +16,111 @@ var _inNode = "process" in global;
 var PERFORMANCE = (global["performance"] || 0)["now"] ? global["performance"] : Date;
 
 var VSYNC_START = global["requestAnimationFrame"]       ? "requestAnimationFrame"
-                : global["msRequestAnimationFrame"]     ? "msRequestAnimationFrame"
+/*{@xbrowser*/  : global["msRequestAnimationFrame"]     ? "msRequestAnimationFrame"
                 : global["mozRequestAnimationFrame"]    ? "mozRequestAnimationFrame"
-                : global["webkitRequestAnimationFrame"] ? "webkitRequestAnimationFrame"
+/*}@xbrowser*/  : global["webkitRequestAnimationFrame"] ? "webkitRequestAnimationFrame"
                                                         : "setTimeout";
 
 var VSYNC_STOP  = global["cancelAnimationFrame"]        ? "cancelAnimationFrame"
-                : global["msCancelAnimationFrame"]      ? "msCancelAnimationFrame"
+/*{@xbrowser*/  : global["msCancelAnimationFrame"]      ? "msCancelAnimationFrame"
                 : global["mozCancelAnimationFrame"]     ? "mozCancelAnimationFrame"
-                : global["webkitCancelAnimationFrame"]  ? "webkitCancelAnimationFrame"
+/*}@xbrowser*/  : global["webkitCancelAnimationFrame"]  ? "webkitCancelAnimationFrame"
                                                         : "clearTimeout";
 // --- interface -------------------------------------------
-function Clock(options) { // @arg Object(= null): { vsync: Boolean, speed: 4 }
-                          //    options.vsync - Boolean: true is VSync mode.
-                          //    options.speed - Number: setInterval(, speed)
+function Clock(options) { // @arg Object(= null): { vsync, speed }
+                          //    options.vsync - Boolean: use requestAnimationFrame, use setInterval is false.
+                          //    options.speed - Number(= 4): setInterval(, speed)
                           // @desc: Master Clock.
                           // @help: Clock
 //{@assert
     _if(!Valid.type(options, "Object/omit", "vsync,speed"), "Clock(options)");
+    if (options) {
+        _if(!Valid.type(options.vsync, "Boolean/omit"), "Clock(options.vsync)");
+        _if(!Valid.type(options.speed, "Number/omit"),  "Clock(options.speed)");
+    }
 //}@assert
 
     options = options || {};
 
-    this._vsync     = options.vsync || false;   // vsync mode
-    this._speed     = options.speed || 4;       // setInterval(, speed)
-    this._tid       = 0;                        // interval timer id.
-    this._counter   = 0;                        // counter
-    this._running   = false;                    // running state. true is running, false is stoped.
-    this._beginTime = 0;                        // begin DateTime(from 0)
-    this._lastTime  = 0;                        // last DateTime
-    this._callback  = [];                       // callback functions. [fn, ...]
-    this._on        = [];                       // on/off flags. [Boolean, ... ]
+    this._vsync     = options.vsync || false;   // Boolean: vsync mode
+    this._speed     = options.speed || 4;       // Integer: setInterval(, speed)
+    this._tid       = 0;                        // Integer: timer id.
+    this._counter   = 0;                        // Integer: callback counter.
+    this._running   = false;                    // Boolean: Master clock running state. true is running, false is stopped.
+    this._beginTime = 0.0;                      // Number: begin DateTime(from 0)
+    this._lastTime  = 0.0;                      // Number: last DateTime
+    this._callback  = [];                       // FunctionArray: callback functions. [callback, ...]
+    this._sweep     = [];                       // FunctionArray: sweep functions. [callback, ... ]
+    this._tickRef   = _tick.bind(this);         // ThisBoundFunction:
 }
 
 Clock["repository"] = "https://github.com/uupaa/Clock.js";
 Clock["prototype"] = {
-    "constructor":  Clock,
-    "on":           Clock_on,           // Clock#on(callback:Function):Boolean
-    "off":          Clock_off,          // Clock#off(callback:Function):Boolean
-    "once":         Clock_once,         // Clock#once(callback:Function, times:Integer = 1):Boolean
+    "constructor":  Clock,              // new Clock(options:Object = null):Clock
+    // --- register / unregister ---
+    "on":           Clock_on,           // Clock#on(callback:Function):this
+    "off":          Clock_off,          // Clock#off(callback:Function):this
+    "has":          Clock_has,          // Clock#has(callback):Boolean
+    "once":         Clock_once,         // Clock#once(callback:Function, times:Integer = 1):this
     "clear":        Clock_clear,        // Clock#clear():this
+    // --- master clock ---
     "run":          Clock_run,          // Clock#run():this
     "stop":         Clock_stop,         // Clock#stop():this
     "isRunning":    Clock_isRunning,    // Clock#isRunning():Boolean
+    // --- utility ---
     "resetCount":   Clock_resetCount    // Clock#resetCount():this
 };
 
 // --- implement -------------------------------------------
 function Clock_on(callback) { // @arg Function: callback(counter:Integer, now:Number, delta:Number):void
-                              // @ret Boolean: true is register, false is already registered.
+                              // @ret this:
                               // @help: Clock#on
+                              // @desc: register callback.
 //{@assert
     _if(!Valid.type(callback, "Function"), "Clock#on(callback)");
 //}@assert
 
-    var pos = this._callback.indexOf(callback);
-
-    if (pos < 0) { // not exists
-        this._callback.push(callback); // add callback
-        this._on.push(true);           // on
-        return true;
-    } else if (!this._on[pos]) { // off?
-        this._on[pos] = true;    // off -> on
-        return true;
+    if ( !this["has"](callback) ) {
+        this._callback.push(callback);
     }
-    return false;
+    return this;
 }
 
 function Clock_off(callback) { // @arg Function: registered callback.
-                               // @ret Boolean: true is unregistered, false is not registered.
+                               // @ret this:
                                // @help: Clock#off
+                               // @desc: deregister callback.
 //{@assert
     _if(!Valid.type(callback, "Function"), "Clock#off(callback)");
 //}@assert
 
-    var pos = this._callback.indexOf(callback);
-
-    if (pos >= 0 && this._on[pos]) {
-        this._on[pos] = false; // on -> off
-        return true;
+    if ( this["has"](callback) ) {
+        this._sweep.push(callback);
     }
-    return false;
+    if (!this._running) {
+        _sweep(this);
+    }
+    return this;
 }
+
+function Clock_has(callback) { // @arg Function: callback
+                               // @ret Boolean: true is registered, false is unregistered.
+                               // @help: Clock#is
+                               // @desc: callback has registered?
+//{@assert
+    _if(!Valid.type(callback, "Function"), "Clock#is(callback)");
+//}@assert
+
+    return (this._callback.indexOf(callback) >= 0) &&
+           (this._sweep.indexOf(callback) < 0);
+}
+
 
 function Clock_once(callback, // @arg Function: callback(counter:Integer, now:Number, delta:Number):void
                     times) {  // @arg Integer(= 1):
-                              // @ret Boolean: true is register, false is already registered.
-                              // @desc: register the callback of once.
+                              // @ret this:
                               // @help: Clock#once
+                              // @desc: register the callback of one-time-only.
 //{@assert
     _if(!Valid.type(callback, "Function"),                "Clock#once(callback)");
     _if(!Valid.type(times, "Integer/omit") || times <= 0, "Clock#once(,times)");
@@ -124,96 +141,103 @@ function Clock_once(callback, // @arg Function: callback(counter:Integer, now:Nu
 
 function Clock_clear() { // @ret this:
                          // @help: Clock#clear
-    for (var i = 0, iz = this._on.length; i < iz; ++i) {
-        this._on[i] = false;
-    }
+                         // @desc: Clear all callbacks.
+    Array.prototype.push.apply(this._sweep, this._callback.slice());
     return this;
 }
 
 function Clock_run() { // @ret this:
                        // @help: Clock#run
-    _runner(this, true);
-    return this;
+                       // @desc: Start the master clock.
+    var that = this;
+
+    if (!that._running) {
+        that._running = true;
+
+        // --- init Master clock ---
+        that._beginTime = PERFORMANCE["now"](); // performance.now() or Date.now()
+        that._lastTime  = 0;
+        if (that._vsync) {
+            that._tid = global[VSYNC_START](that._tickRef, 16); // 16 <- 16.666 <- 1000 / 60fps
+        } else {
+            that._tid = global.setInterval(that._tickRef, that._speed);
+        }
+    }
+    return that;
 }
 
 function Clock_stop() { // @ret this:
                         // @help: Clock#stop
-    _runner(this, false);
-    return this;
+                        // @desc: Stop the master clock.
+    var that = this;
+
+    if (that._running) {
+        that._running = false;
+        if (that._vsync) {
+            global[VSYNC_STOP](that._tid);
+        } else {
+            global.clearInterval(that._tid);
+        }
+        that._tid = 0;
+        _sweep(that);
+    }
+    return that;
 }
 
-function _runner(that,  // @arg this:
-                 run) { // @arg Boolean: true is run, false is stop.
-                        // @desc: tick and onEnterFrame runner
-    if (run) {
-        if (!that._running) {
-            that._running = true;
-            that._beginTime = PERFORMANCE.now();
-            that._lastTime  = 0;
-            if (that._vsync) {
-                that._tid = global[VSYNC_START](_tick, 16); // 16.666 = 1000 / 60fps
-            } else {
-                that._tid = global.setInterval(_tick, that._speed);
-            }
-        }
-    } else {
-        if (that._running) {
-            that._running = false;
-            if (that._vsync) {
-                global[VSYNC_STOP](that._tid);
-            } else {
-                global.clearInterval(that._tid);
-            }
-            _sweep(that);
-        }
-    }
 
-    // interval tick or onEnterFrame
+    // interval tick, onEnterFrame function
     function _tick() {
-        var iz = that._callback.length;
+        var that = this;
 
+        // --- schedule next tick ---
         if (that._vsync) {
             if (that._running) {
-                that._tid = global[VSYNC_START](_tick, 16); // 16.666 = 1000 / 60fps
+                // requestAnimationFrame(_onEnterFrame) or setTimeout(_onEnterFrame, 16)
+                that._tid = global[VSYNC_START](that._tickRef, 16); // 16 <- 16.666 <- 1000 / 60fps
             }
         }
+
+        // --- sweep deregistered callbacks ---
+        if (that._sweep.length) {
+            _sweep(that);
+        }
+
+        var i = 0, iz = that._callback.length;
+
         if (iz) {
-            var sweep = false;
-            var now = PERFORMANCE["now"]() - that._beginTime; // (performance || Date).now()
-            var delta = now - that._lastTime;
+            // --- get current time and delta time ---
+            var now   = PERFORMANCE["now"]() - that._beginTime; // performance.now() or Date.now()
+            var delta = that._lastTime ? now - that._lastTime
+                                       : 0; // init
+            // --- callback ---
+            var counter = that._counter++;
 
-            if (!that._lastTime) {
-                delta = 0;
-            }
-            for (var i = 0; i < iz; ++i) {
-                if (that._on[i]) { // on?
-                    var fn = that._callback[i];
+            for (; i < iz; ++i) {
+                var callback = that._callback[i];
 
-                    if (fn) {
-                        fn(that._counter, now, delta);
-                    }
-                } else {
-                    sweep = true;
+                if (callback) {
+                    callback(counter, now, delta);
                 }
             }
-            that._lastTime = now; // update last time
-            ++that._counter;
-
-            if (sweep) {
-                _sweep(that);
-            }
+            // --- finish ---
+            that._lastTime = now;
         }
     }
-}
+
 
 function _sweep(that) {
-    var i = that._on.length;
+    if (that._sweep.length) {
+        var sweepedCallbacks = [];
 
-    while (i--) {
-        if (!that._on[i]) { // off -> remove
-            that._callback.splice(i, 1);
-            that._on.splice(i, 1);
+        for (var i = 0, iz = that._callback.length; i < iz; ++i) {
+            var callback = that._callback[i];
+
+            if (that._sweep.indexOf(callback) < 0) {
+                sweepedCallbacks.push(callback);
+            }
         }
+        that._sweep = [];
+        that._callback = sweepedCallbacks;
     }
 }
 
@@ -224,7 +248,7 @@ function Clock_isRunning() { // @ret Boolean: true is running, false is stopped
 
 function Clock_resetCount() { // @ret this:
                               // @help: Clock#resetCount
-    this._count = 0;
+    this._counter = 0;
     return this;
 }
 

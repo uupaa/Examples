@@ -1,4 +1,4 @@
-// @name: ParticleBench.js
+// @name: UIThreadRender.js
 // @require: Clock.js
 // @cutoff: @node
 
@@ -12,20 +12,23 @@ var _inNode = "process" in global;
 
 // --- define ----------------------------------------------
 // --- interface -------------------------------------------
-function ParticleBench(param,      // @arg Object: { count:Integer = 1000, canvas:HTMLCanvasElement }
-                       callback) { // @arg Function(= null): callback(fps:Number)
-                                   // @help: ParticleBench
+function UIThreadRender(param,      // @arg Object: { count, canvas, frameSkip }
+                                    //   param.count - Integer(= 1000):
+                                    //   param.canvas - HTMLCanvasElement:
+                                    //   param.frameSkip - Boolean(= false):
+                        callback) { // @arg Function(= null): callback(fps:Number)
+                                    // @help: UIThreadRender
     _init(this, param, callback || null);
 }
 
-ParticleBench["repository"] = "https://github.com/uupaa/ParticleBench.js";
+UIThreadRender["repository"] = "https://github.com/uupaa/ParticleBench.js";
 
 // --- public method ---
-ParticleBench["prototype"]["run"]    = ParticleBench_run;    // ParticleBench#run():this
-ParticleBench["prototype"]["stop"]   = ParticleBench_stop;   // ParticleBench#stop():this
+UIThreadRender["prototype"]["run"]    = ParticleBench_run;    // UIThreadRender#run():this
+UIThreadRender["prototype"]["stop"]   = ParticleBench_stop;   // UIThreadRender#stop():this
 // --- private method ---
-ParticleBench["prototype"]["update"] = ParticleBench_update; // ParticleBench#update(particles, imageData, width, height, mx, my):this
-ParticleBench["prototype"]["render"] = ParticleBench_render; // ParticleBench#render():this
+UIThreadRender["prototype"]["update"] = ParticleBench_update; // UIThreadRender#update(particles, imageData, width, height, mx, my):this
+UIThreadRender["prototype"]["render"] = ParticleBench_render; // UIThreadRender#render():this
 
 // --- implement -------------------------------------------
 function _init(that, param, callback) {
@@ -42,8 +45,10 @@ function _init(that, param, callback) {
 
     // --- State ---
     that._running = false;
+    that._frameSkip = param["frameSkip"] || false;
     that._fps = {
         count: 0,
+        skipped: 0,  // render skipped
         lastTime: 0
     };
     that._mouse = {
@@ -103,8 +108,8 @@ function ParticleBench_stop() {
     this._fps.count = 0;
     this._fps.lastTime = Date.now();
 
-    this._clock["stop"]();
     this._clock["off"](this._tickRef);
+    this._clock["stop"]();
 
     return this;
 }
@@ -124,20 +129,30 @@ function _calcFPS(that) {
     var fps = 1000 / ((now - that._fps.lastTime) / that._fps.count);
 
     if (that._callback) {
-        that._callback(fps);
+        that._callback(fps, that._fps.skipped);
     }
     that._fps.count = 0;
+    that._fps.skipped = 0;
     that._fps.lastTime = now;
 }
 
-function _tick() {
-    this["update"](this._particles,
-                   this._imageData["data"],
-                   this._imageData["width"],
-                   this._imageData["height"],
-                   this._mouse.position.x,
-                   this._mouse.position.y);
-    this["render"]();
+function _tick(counter, // @arg Integer:
+               now,     // @arg Number:
+               delta) { // @arg Number: delta time.
+    var that = this;
+
+    // frame skip
+    if (that._frameSkip && delta > 20) { // 16.6666 * 120% = 19.9992
+        ++that._fps.skipped;
+    } else {
+        that["update"](that._particles,
+                       that._imageData["data"],
+                       that._imageData["width"],
+                       that._imageData["height"],
+                       that._mouse.position.x,
+                       that._mouse.position.y);
+        that["render"]();
+    }
 }
 
 function ParticleBench_update(particles, imageData, width, height, mx, my) {
@@ -191,13 +206,13 @@ function ParticleBench_update(particles, imageData, width, height, mx, my) {
 // --- export ----------------------------------------------
 //{@node
 if (_inNode) {
-    module["exports"] = ParticleBench;
+    module["exports"] = UIThreadRender;
 }
 //}@node
-if (global["ParticleBench"]) {
-    global["ParticleBench_"] = ParticleBench; // already exsists
+if (global["UIThreadRender"]) {
+    global["ParticleBench_"] = UIThreadRender; // already exsists
 } else {
-    global["ParticleBench"]  = ParticleBench;
+    global["UIThreadRender"]  = UIThreadRender;
 }
 
 })((this || 0).self || global);

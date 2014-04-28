@@ -1,4 +1,4 @@
-// @name: ParticleBenchWorker.js
+// @name: WorkerEx.js
 // @require: none
 // @cutoff:
 
@@ -86,14 +86,15 @@ function _update(particles, imageData, width, height, mx, my) {
         // put purple dots
         var j = ((x | 0) + (y | 0) * width) * 4;
 
-      //imageData[j    ] = 230; // r (0 - 255)
-        imageData[j + 1] = 200; // g (0 - 255)
-        imageData[j + 2] = 200; // b (0 - 255)
-        imageData[j + 3] = 200; // a (0 - 255) 200 is vaguely
+        imageData[j    ] = 250; // r (0 - 255)
+        imageData[j + 1] = 100; // g (0 - 255)
+        imageData[j + 2] = 100; // b (0 - 255)
+        imageData[j + 3] = 100; // a (0 - 255) 200 is vaguely
     }
 }
 
 // --- export ----------------------------------------------
 
 })((this || 0).self || global);
+
 
