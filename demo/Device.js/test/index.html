@@ -1,0 +1,20 @@
+<!DOCTYPE html><html><head><title>test</title>
+<meta charset="utf-8"></head><body>
+<script src="../lib/Valid.js"></script>
+<script src="../lib/Spec.js"></script>
+<script src="../lib/UserAgent.js"></script>
+<script src="../lib/Device.js"></script>
+<script src="../lib/Browser.js"></script>
+
+
+<pre></pre>
+<script>
+var div = document.querySelector("pre");
+
+div.textContent = JSON.stringify( Browser(Device(UserAgent(Spec()))), null, 2);
+
+</script>
+
+
+</body></html>
+
