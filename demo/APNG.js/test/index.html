@@ -1,0 +1,55 @@
+<!DOCTYPE html><html><head><title>APNG test</title>
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<meta charset="utf-8">
+</head><body>
+
+<div id="form">
+wait: <input type="range" min="0" value="0" max="100" step="1" />[<span>0</span> ms](<span>0</span> fps)<br />
+pulse: <input type="range" min="1" value="0" max="100" />[<span>0</span> ms]<br />
+<input type="button" value="play" onclick="apng && apng.play()" />
+<input type="button" value="pause" onclick="apng && apng.pause()" />
+state: <span>wait</span>
+<br />
+<!--
+<input type="file" accept="image/*"></input><br />
+ -->
+frame length: <span>0</span><br />
+current frame: <span>0</span><br />
+</div>
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/clock.apng.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/Gold.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/APNG-from-GIF-Mouse.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/APNG-from-GIF-LostWorld.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/o_sample.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/colors-apng.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/APNG.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/APNG-Icos4D.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/APNG-Glass.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/graham11.png" width="32" height="32" />
+<img src="../node_modules/uupaa.testresource.js/assets/png/animetion/APNG-Fadeout.png" width="32" height="32" />
+
+<hr />
+<canvas width="32" height="32"></canvas>
+
+<script src="../node_modules/uupaa.codec.js/node_modules/uupaa.hash.js/lib/Hash.js"></script>
+<script src="../node_modules/uupaa.codec.js/lib/Codec.js"></script>
+<script src="../node_modules/uupaa.codec.js/lib/Doubler.js"></script>
+<script src="../node_modules/uupaa.codec.js/lib/MessagePack.js"></script>
+<script src="../node_modules/uupaa.codec.js/lib/ZLib.js"></script>
+<script src="../node_modules/uupaa.clock.js/node_modules/uupaa.pagevisibilityevent.js/lib/PageVisibilityEvent.js"></script>
+<script src="../node_modules/uupaa.clock.js/lib/Clock.js"></script>
+<script src="../node_modules/uupaa.thread.js/lib/Thread.js"></script>
+<script src="../node_modules/uupaa.thread.js/lib/ThreadPool.js"></script>
+<script src=".././test/wmtools.js"></script>
+<script src="../lib/APNG.js"></script>
+<script src="../lib/APNGFrame.js"></script>
+<script src="../lib/APNGDecoder.js"></script>
+<script src="../lib/APNGPanel.js"></script>
+<script src="../lib/APNGImage.js"></script>
+<!--
+<script src="../release/APNG.b.min.js"></script>
+ -->
+<script src="./testcase.js"></script>
+
+</body></html>
+
