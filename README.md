@@ -3,6 +3,7 @@ Examples
 
 Demo and Examples.
 
+- http://uupaa.github.io/Examples/demo/Spec.js/test/index.html
 - http://uupaa.github.io/Examples/demo/WMCache.js/test/index.html
 - http://uupaa.github.io/Examples/demo/ChromeTrigger.js/test/index.html
 - http://uupaa.github.io/Examples/demo/ChromeTrigger.js/test/debug.html
