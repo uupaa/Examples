@@ -1,0 +1,165 @@
+<!DOCTYPE html><html><head><title>GamePad test</title>
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<meta charset="utf-8"></head><body>
+
+<script src="../lib/WebModule.js"></script>
+<script>
+//publish to global. eg: window.WebModule.Class -> window.Class
+WebModule.publish = true;
+</script>
+
+
+<script src="../lib/GamePadCatalog.js"></script>
+<script src="../lib/GamePadConnector.js"></script>
+<script src="../lib/GamePad.js"></script>
+<script src="../lib/GamePadPlayer.js"></script>
+
+<style>canvas { background: #eeeeee; }</style>
+<p><canvas id="canvas" width="800" height="200"></p>
+<div id="log" style="position:absolute;top:0;left:0;width:300px;height:500px;">
+</div>
+<script>
+
+var ctx = document.getElementById("canvas").getContext("2d");
+
+var player1 = { // user control
+        x:  100.0,
+        y:  175.0,
+        velocity: {
+            x: 0.0,
+            y: 0.0,
+        },
+        highJump: -12.0, // 大ジャンプの到達点
+        lowJump:  -4.0,  // 小ジャンプの高さ
+        onGround: false  // 地面に接しているか
+    };
+var player2 = { // shadow
+        x:  100.0,
+        y:  175.0,
+        velocity: {
+            x: 0.0,
+            y: 0.0,
+        },
+        highJump: -12.0, // 大ジャンプの到達点
+        lowJump:  -4.0,  // 小ジャンプの高さ
+        onGround: false  // 地面に接しているか
+    };
+
+var scene = {
+        gravity: {
+            x: 0.0,
+            y: 0.5,
+        }
+    };
+
+
+GamePadConnector.VERBOSE = true;
+
+var gamepad1 = null;
+var gamepad2 = null;
+
+GamePadConnector(function(id) {
+    gamepad1 = new GamePad(id);
+
+    setTimeout(function() {
+        gamepad2 = new GamePadPlayer(id, gamepad1.buffer);
+    }, 3000);
+});
+
+
+function startJump(player, ratio) {
+    if (player.onGround) {
+        player.onGround = false;
+        player.velocity.y = player.highJump * ratio;
+    }
+}
+
+function endJump(player) {
+    if (player.velocity.y < player.lowJump) { // 押下時間が満たない場合は、小ジャンプに
+        player.velocity.y = player.lowJump;
+    }
+}
+
+function gameLoop() {
+    if (gamepad1 && gamepad1.connected) {
+        input(player1, gamepad1);
+    }
+    if (gamepad2 && gamepad2.connected) {
+        input(player2, gamepad2);
+    }
+    update(player1);
+    update(player2);
+    render();
+    requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+function input(player, gamepad) {
+    gamepad.scan();
+
+    var curt = gamepad.value; // current value. { U:UINT8, R:UINT8, ... R2:UINT8 }
+    var edge = gamepad.edge;  // detection of edge. { U:Boolean, R:Boolean, ... R2:Boolean }
+
+    // --- B DASH ---
+    var dash  = curt.X || curt.B;
+    var ratio = dash ? 1.5 : 1; // ダッシュ中は普段の1.5倍速で動作可能
+
+    // --- Jump ---
+    if (edge.A) {
+        if (curt.A) { // A BUTTON OFF -> ON
+            startJump(player, ratio);
+        } else {      // A BUTTON ON -> OFF
+            endJump(player);
+        }
+    }
+
+
+    // --- D-PAD ---
+    if (curt.L) {
+        player.velocity.x -= 2 * ratio;
+        if (player.velocity.x <= -4 * ratio) {
+            player.velocity.x  = -4 * ratio;
+        }
+    } else if (curt.R) {
+        player.velocity.x += 2 * ratio;
+        if (player.velocity.x >= 4 * ratio) {
+            player.velocity.x  = 4 * ratio;
+        }
+    }
+}
+    //var history = gamepad.output(); // get status history;
+
+function update(player) {
+    player.velocity.x += scene.gravity.x; // 重力方向に速度を加速
+    player.velocity.y += scene.gravity.y; // 重力方向に速度を加速
+    player.y += player.velocity.y;        // 座標に速度を加算
+    player.x += player.velocity.x;        // 座標に速度を加算
+
+    if (player.y > 175.0) { // 地面との接触
+        player.y = 175.0;
+        player.velocity.y = 0.0;
+        player.onGround = true;
+    }
+
+    if (player.onGround) { // 地面の摩擦
+        if (player.velocity.x >= 0) {
+            player.velocity.x >>= 1;
+        } else {
+            player.velocity.x = -(-player.velocity.x >> 1); // 負の値は反転してからビットシフト
+        }
+    }
+}
+
+function render() {
+    ctx.clearRect(0, 0, 800, 200);
+    ctx.beginPath();
+    ctx.moveTo(0,175);
+    ctx.lineTo(800,175);
+    ctx.stroke();
+    ctx.strokeRect(player1.x - 10, player1.y - 20, 20, 20);
+    ctx.fillRect(player2.x - 10, player2.y - 20, 20, 20);
+}
+
+</script>
+
+</body></html>
