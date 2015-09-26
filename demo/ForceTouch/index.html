@@ -1,0 +1,93 @@
+<!DOCTYPE html><html><head><title></title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<style>
+html, body, ul {
+  margin: 0;
+  padding: 0;
+}
+.touchable {
+  outline: 1px outset gray;
+}
+.pallet {
+  list-style: none;
+}
+.pallet li {
+  display: inline
+}
+.pallet li button {
+  width: 40px;
+  height: 40px;
+  border-radius: 32px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+canvas {
+  margin: 2px;
+  padding: 0;
+}
+</style>
+</head>
+<body>
+<canvas class="touchable" width="370" height="480"></canvas>
+<ul class="pallet">
+  <li><button style="background-color:pink"  onclick="changePenColor(this)"></button></li>
+  <li><button style="background-color:red"   onclick="changePenColor(this)"></button></li>
+  <li><button style="background-color:blue"  onclick="changePenColor(this)"></button></li>
+  <li><button style="background-color:green" onclick="changePenColor(this)"></button></li>
+  <li><button style="background-color:white" onclick="changePenColor(this)"></button></li>
+  <li><button style="background-color:black" onclick="changePenColor(this)"></button></li>
+</ul>
+
+<script>
+var ctx = null;
+var pen = { x: 0, y: 0, color: "black" };
+
+function changePenColor(target) {
+  pen.color = window.getComputedStyle(target, null).backgroundColor;
+  ctx.fillStyle = pen.color;
+}
+window.onload = function() {
+  var node = document.querySelector("canvas");
+  node.addEventListener("touchstart", handleEvent);
+  node.addEventListener("touchmove", handleEvent);
+  node.addEventListener("touchend", handleEvent);
+  ctx = node.getContext("2d");
+  ctx.textBaseline = "bottom";
+  ctx.font = "12px 'Times New Roman'";
+};
+
+function handleEvent(event) {
+  var type  = event.type;
+  var touch = event.touches[0];
+  var force = touch ? touch.force || 0.0 : 1;
+  var x     = touch ? touch.clientX : pen.x;
+  var y     = touch ? touch.clientY : pen.y;
+
+  pen.x = x;
+  pen.y = y;
+  event.preventDefault();
+
+  switch (type) {
+  case "touchstart": drawCircle(ctx, x, y, force); break;
+  case "touchmove":  drawCircle(ctx, x, y, force); break;
+  case "touchend":   drawCircle(ctx, x, y, 0);     break;
+  }
+}
+
+function drawCircle(ctx, x, y, force) {
+  var radius = force * 20 + 4;
+  var alpha  = force * 0.4;
+  alpha = alpha < 0.1 ? 0.1 : alpha;
+
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+  ctx.fill();
+  ctx.closePath();
+}
+</script>
+
+</body>
+</html>
+
