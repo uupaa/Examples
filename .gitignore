@@ -3,5 +3,6 @@ lint/plato/assets
 lint/plato/files
 lint/plato/*.html
 .Minify*
+.DS_Store
 lib/*.min.js
 
