@@ -3,6 +3,7 @@ Examples
 
 Demo and Examples.
 
+- http://uupaa.github.io/Examples/demo/ForceClick.js/test/index.html
 - http://uupaa.github.io/Examples/demo/ForceTouch/index.html
 - http://uupaa.github.io/Examples/demo/GamePad.js/test/index.html
 - http://uupaa.github.io/Examples/demo/Spec.js/test/index.html
